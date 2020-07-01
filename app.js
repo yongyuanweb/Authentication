@@ -5,22 +5,29 @@ const express=require("express");
 const bodyParser=require("body-parser");
 const ejs=require("ejs");
 const mongoose=require("mongoose");
+//MD5 hashing
+const md5=require("md5");
+//salting and hashing
+// const bcrypt=require("bcrypt");
+// //salt round
+// const saltRounds=10;
 const app=express();
-const encrypt=require("mongoose-encryption");
+// const encrypt=require("mongoose-encryption");
+
 
 app.use(express.static("public"));
 app.use(bodyParser.urlencoded({extended:true}));
 app.set("view engine","ejs");
 mongoose.connect("mongodb://localhost:27017/userDB",{ useNewUrlParser: true,
                                                       useUnifiedTopology:true});
-console.log(process.env.SECRET);
+
 const userSchema=new mongoose.Schema({
   email:String,
   password:String
 });
 //this plugin must be order in front of creating new model.
 //read plugin in mongoose documentation.
-userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ["password"] });
+// userSchema.plugin(encrypt, { secret: process.env.SECRET, encryptedFields: ["password"] });
 //mongoose encrypt will encrypt when you call save and then it will decrypt when you call find.
 const User=new mongoose.model("User",userSchema);
 
@@ -35,9 +42,12 @@ app.get("/register",function(req,res){
 })
 
 app.post("/register",function(req,res){
+//   bcrypt.hash(myPlaintextPassword, saltRounds, function(err, hash) {
+//     // Store hash in your password DB.
+// });
   const newUser=new User({
     email:req.body.username,
-    password:req.body.password
+    password:md5(req.body.password)
   });
   newUser.save(function(err){
     if(err){
@@ -51,7 +61,7 @@ app.post("/register",function(req,res){
 
 app.post("/login",function(req,res){
   const username=req.body.username;
-  const password=req.body.password;
+  const password=md5(req.body.password);
   User.findOne({email:username},function(err,foundUser){
     if(err){
       console.log("No User Found");
